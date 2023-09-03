@@ -1,0 +1,6 @@
+.vscode
+cache
+artifacts
+node_modules
+secret.json
+runPath.md
