@@ -25,15 +25,15 @@ module.exports = {
     },
     polygonMumbai: {
       // url: `https://matic-mumbai.chainstacklabs.com`,
-      // url: `https://rpc.ankr.com/polygon_mumbai`,
-      url: `https://polygon-mumbai.blockpi.network/v1/rpc/public`,
+      url: `https://rpc.ankr.com/polygon_mumbai`,
+      // url: `https://polygon-mumbai.blockpi.network/v1/rpc/public`,
       accounts: [`0x${PRIVATE_KEY}`],
       chainId: 80001
     },
     sepolia: {
-      url: `https://endpoints.omniatech.io/v1/eth/sepolia/public`,
+      // url: `https://endpoints.omniatech.io/v1/eth/sepolia/public`,
       // url: `https://api.zan.top/node/v1/eth/sepolia/public`,
-      // url: `https://eth-sepolia.public.blastapi.io`,
+      url: `https://eth-sepolia.public.blastapi.io`,
       // url: `https://rpc-sepolia.rockx.com`,
       // url: `https://rpc2.sepolia.org`,
       // url: `https://sepolia.gateway.tenderly.co`,
