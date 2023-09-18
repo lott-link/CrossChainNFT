@@ -6,41 +6,42 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 
 
-contract Cross is ERC721Holder {
-
-    address immutable i_router;
+contract Cross is ERC721Holder, CCIPReceiver {
     address immutable i_link;
-    uint64 immutable _chainSelector;
+    uint64 currentSelector;
+    uint64 targetSelector;
 
-    modifier onlyRouter() {
-        require(msg.sender == i_router, "onlyRouter");
-        _;
-    }
-
-    constructor(address router, address link, uint64 chainSelector) {
-        i_router = router;
+    constructor(
+        uint64 _currentSelector,
+        uint64 _targetSelector,
+        address router,
+        address link
+    ) CCIPReceiver(router) {
+        currentSelector = _currentSelector;
+        targetSelector = _targetSelector;
         i_link = link;
-        _chainSelector = chainSelector;
-        LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
+        LinkTokenInterface(link).approve(i_router, type(uint256).max);
     }
 
     function getFee(
-        uint64 targetChainSelector,
         address userAddr,
         address contAddr,
         uint256 tokenId,
-        address wAddr,
         bool payInLink
     ) external view returns (uint256 fee) {
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         IERC721Metadata NFT = IERC721Metadata(contAddr);
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-            receiver: abi.encode(wAddr),
-            data: abi.encodeWithSignature(
-                "wMint(address,address,uint256,uint64)", 
-                userAddr, contAddr, tokenId, _chainSelector, address(this), NFT.name(), NFT.symbol()
+            receiver: abi.encode(address(this)),
+            data: abi.encode(
+                userAddr,
+                contAddr,
+                tokenId,
+                NFT.name(),
+                NFT.symbol()
             ),
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -48,27 +49,29 @@ contract Cross is ERC721Holder {
         });
 
         // Get the fee required to send the message
-        fee = IRouterClient(i_router).getFee(targetChainSelector, message);
+        fee = IRouterClient(i_router).getFee(targetSelector, message);
     }
 
-    function xTransfer(
-        uint64 targetChainSelector,
+    function requestTransferCrossChain(
         address contAddr,
-        uint256 tokenId,
-        address wAddr
+        address to,
+        uint256 tokenId
     ) public payable {
-
         bool payInLink = msg.value == 0;
-        address userAddr = msg.sender;
+        address from = msg.sender;
 
         IERC721Metadata NFT = IERC721Metadata(contAddr);
-        NFT.safeTransferFrom(userAddr, address(this), tokenId);
+        NFT.safeTransferFrom(from, address(this), tokenId);
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-            receiver: abi.encode(wAddr),
-            data: abi.encodeWithSignature(
-                "wMint(address,address,uint256,uint64)", 
-                userAddr, contAddr, tokenId, _chainSelector, address(this), NFT.name(), NFT.symbol()
+            receiver: abi.encode(address(this)),
+            data: abi.encode(
+                to,
+                contAddr,
+                tokenId,
+                NFT.name(),
+                NFT.symbol(),
+                NFT.tokenURI(tokenId)
             ),
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -76,28 +79,50 @@ contract Cross is ERC721Holder {
         });
 
         uint256 fee = IRouterClient(i_router).getFee(
-            targetChainSelector,
+            targetSelector,
             message
         );
 
         bytes32 messageId;
 
         if (payInLink) {
-            LinkTokenInterface(i_link).transferFrom(msg.sender, address(this), fee);
+            LinkTokenInterface(i_link).transferFrom(
+                msg.sender,
+                address(this),
+                fee
+            );
             messageId = IRouterClient(i_router).ccipSend(
-                targetChainSelector,
+                targetSelector,
                 message
             );
         } else {
             messageId = IRouterClient(i_router).ccipSend{value: fee}(
-                targetChainSelector,
+                targetSelector,
                 message
             );
+            if (msg.value > fee) {
+                payable(msg.sender).transfer(msg.value - fee);
+            }
         }
     }
 
-    function release(address contAddr, address to, uint256 tokenId) public onlyRouter {
+    function _release(
+        address contAddr,
+        address to,
+        uint256 tokenId
+    ) internal {
         IERC721 NFT = IERC721(contAddr);
         NFT.safeTransferFrom(address(this), to, tokenId);
+    }
+
+    function _ccipReceive(
+        Client.Any2EVMMessage memory message
+    ) internal virtual override {
+        (
+            address contAddr,
+            address to,
+            uint256 tokenId
+        ) = abi.decode(message.data, (address, address, uint256));
+        _release(contAddr, to, tokenId);
     }
 }

@@ -123,7 +123,7 @@ contract CCIP is OwnerIsCreator, CCIPReceiver {
 
     /// handle a received message
     function _ccipReceive(
-        Client.Any2EVMMessage calldata any2EvmMessage
+        Client.Any2EVMMessage memory any2EvmMessage
     ) internal override {
         lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
         lastReceivedText = abi.decode(any2EvmMessage.data, (string)); // abi-decoding of the sent text

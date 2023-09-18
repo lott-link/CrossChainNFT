@@ -1,60 +1,66 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-import "@openzeppelin/contracts/proxy/Clones.sol";
-import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 import "./WNFT.sol";
 
-contract WCross is CCIPReceiver {
-    uint256 _chainSelector;
+contract WCross is WNFT {
 
-    address nftImpl;
-
-    struct WContract {
-        uint64 sourceChainSelector;
-        address contAddr;
-        address wContAddr;
-    }
-    WContract[] wContracts;
-
-    event WContractCreated(uint256 indexed chainSelector, address sourceAddr, address wAddr);
+    event CcipReceive(bytes data);
 
     constructor(
-        uint256 chainSelector,
+        uint64 _currentSelector,
+        uint64 _targetSelector,
         address router,
         address link
-    ) CCIPReceiver(router) {
-        _chainSelector = chainSelector;
-        nftImpl = address(new WNFT(address(this), router, link));
+    ) WNFT(router, link) {
+        currentSelector = _currentSelector;
+        targetSelector = _targetSelector;
+        LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
     }
 
-    function createWContract(
-        uint64 chainSelector, 
-        address contractAddr, 
-        string memory name, 
-        string memory symbol
-    ) public returns (address nftAddr) {
-        bytes32 salt = keccak256(abi.encode(chainSelector, contractAddr));
-        address clone = Clones.predictDeterministicAddress(nftImpl, salt);
-        nftAddr = address(WNFT(clone));
-        if (clone.code.length == 0) {
-            emit WContractCreated(chainSelector, contractAddr, clone);
-            Clones.cloneDeterministic(nftImpl, salt);
-            WNFT(clone).initialize(name, symbol);
-            wContracts.push(WContract(chainSelector, contractAddr, clone));
-        }
+    function getFee(
+        address userAddr,
+        uint256 wTokenId,
+        bool payInLink
+    ) external view returns (uint256 fee) {
+        WrappedToken memory wToken = wrappedTokens[wTokenId];
+        return _getFee(wToken.contAddr, userAddr, wToken.tokenId, payInLink);
+    }
+        
+    
+    // age user ezafi pool dad baqiasho behesh bargardoonim.
+    // ye meqdar ham ezafe tar begirim baqiasho bedim be dapp.
+    function requestReleaseLockedToken(
+        uint256 wTokenId,
+        address to
+    ) public payable {
+        WrappedToken memory wToken = wrappedTokens[wTokenId];
+
+        address contAddr = wToken.contAddr;
+        uint256 tokenId = wToken.tokenId;
+
+        require(
+            _isApprovedOrOwner(_msgSender(), wTokenId),
+            "ERC721Burnable: caller is not owner nor approved"
+        );
+        _burn(wTokenId);
+        delete wrappedTokens[wTokenId];
+
+        xBack(contAddr, to, tokenId);
     }
 
     function _ccipReceive(
-        Client.Any2EVMMessage calldata message
+        Client.Any2EVMMessage memory message
     ) internal virtual override {
-        (,address contAddr,,uint64 chainSelector,, string memory name, string memory symbol) = abi.decode(
-            message.data[4:], 
-            (address, address, address, uint64, uint256, string, string)
-        );
-        (bool success, ) = createWContract(chainSelector, contAddr, name, symbol).call(message.data[:132]);
-        require(success);
+        (
+            address to,
+            address contAddr,
+            uint256 tokenId,
+            string memory name,
+            string memory symbol,
+            string memory tokenURI
+        ) = abi.decode(message.data, (address, address, uint256, string, string, string));
+        wMint(to, contAddr, tokenId, name, symbol, tokenURI);
+        emit CcipReceive(msg.data);
     }
 }

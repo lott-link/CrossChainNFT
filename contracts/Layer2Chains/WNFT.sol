@@ -1,60 +1,74 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 
-contract WNFT is  Initializable, ERC721BurnableUpgradeable {
-
-    address immutable i_router;
+abstract contract WNFT is ERC721Burnable, CCIPReceiver {
     address immutable i_link;
-    address immutable _wCross;
+    uint64 currentSelector;
+    uint64 targetSelector;
+    uint256 counter;
 
-    struct Token {
+    struct WrappedToken {
         address contAddr;
         uint256 tokenId;
-        uint64 chainSelector;
+        string name;
+        string symbol;
+        string uri;
     }
-    mapping(uint256 => Token) tokens;
-
-    modifier onlyWCross() {
-        require(msg.sender == _wCross, "only wCross");
-        _;
-    }
-    function initialize(string memory _name, string memory _symbole) public initializer {
-        __ERC721_init(string.concat("wrapped ", _name), string.concat("w" ,_symbole));
-        LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
-    }
+    mapping(uint256 => WrappedToken) wrappedTokens;
 
     constructor(
-        address wCross,
         address router,
         address link
-    ) {
-        _wCross = wCross; 
-        i_router = router;
+    ) ERC721("Wrapped NFT", "WNFT") CCIPReceiver(router) {
         i_link = link;
     }
 
-    function getFee(
-        uint64 targetChainSelector,
-        address userAddr,
-        uint256 wTokenId,
-        bool payInLink
-    ) external view returns (uint256 fee) {
-        Token memory token = tokens[wTokenId];
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+        _requireMinted(tokenId);
+        return (wrappedTokens[tokenId].uri);
+    }
 
+    function wMint(
+        address userAddr,
+        address contAddr,
+        uint256 tokenId,
+        string memory _name,
+        string memory _symbol,
+        string memory _uri
+    ) public {
+        uint256 wTokenId = counter++;
+        wrappedTokens[wTokenId] = WrappedToken(
+            contAddr,
+            tokenId,
+            _name,
+            _symbol,
+            _uri
+        );
+
+        _safeMint(userAddr, wTokenId);
+    }
+
+    function _getFee(
+        address contAddr,
+        address userAddr,
+        uint256 tokenId,
+        bool payInLink
+    ) internal view returns (uint256 fee) {
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-            receiver: abi.encode(userAddr),
-            data: abi.encodeWithSignature(
-                "release(address,address,uint256)",
-                token.contAddr,
+            receiver: abi.encode(address(this)),
+            data: abi.encode(
+                contAddr,
                 userAddr,
-                token.tokenId
+                tokenId
             ),
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -62,70 +76,53 @@ contract WNFT is  Initializable, ERC721BurnableUpgradeable {
         });
 
         // Get the fee required to send the message
-        fee = IRouterClient(i_router).getFee(targetChainSelector, message);
+        fee = IRouterClient(i_router).getFee(targetSelector, message);
     }
-    
-    function wMint(
-        address userAddr,
+
+
+    function xBack(
         address contAddr,
-        uint256 tokenId,
-        uint64 chainSelector
-    ) public onlyWCross {
-        uint256 wTokenId = uint64(
-            uint256(
-                keccak256(abi.encodePacked(tokenId, contAddr, chainSelector))
-            )
-        );
-        tokens[wTokenId] = Token(contAddr, tokenId, chainSelector);
+        address userAddr,
+        uint256 tokenId
+    ) internal {
+        bool payInLink = msg.value == 0;
 
-        _safeMint(userAddr, tokenId);
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(address(this)),
+            data: abi.encode(contAddr, userAddr, tokenId),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: "",
+            feeToken: payInLink ? i_link : address(0)
+        });
+
+        uint256 fee = IRouterClient(i_router).getFee(targetSelector, message);
+
+        bytes32 messageId;
+
+        if (payInLink) {
+            LinkTokenInterface(i_link).transferFrom(
+                msg.sender,
+                address(this),
+                fee
+            );
+            messageId = IRouterClient(i_router).ccipSend(
+                targetSelector,
+                message
+            );
+        } else {
+            messageId = IRouterClient(i_router).ccipSend{value: fee}(
+                targetSelector,
+                message
+            );
+            if (msg.value > fee) {
+                payable(msg.sender).transfer(msg.value - fee);
+            }
+        }
     }
 
-    // function xBack(uint256 wTokenId) public payable {
-    //     _requireMinted(wTokenId);
-    //     Token memory token = tokens[wTokenId];
-    //     address userAddr = msg.sender;
-
-    //     bool payInLink = msg.value == 0;
-
-    //     burn(wTokenId);
-
-    //     Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-    //         receiver: abi.encode(token.crossAddr),
-    //         data: abi.encodeWithSignature(
-    //             "release(address,address,uint256)",
-    //             token.contAddr,
-    //             userAddr,
-    //             token.tokenId
-    //         ),
-    //         tokenAmounts: new Client.EVMTokenAmount[](0),
-    //         extraArgs: "",
-    //         feeToken: payInLink ? i_link : address(0)
-    //     });
-
-    //     uint256 fee = IRouterClient(i_router).getFee(
-    //         token.chainSelector,
-    //         message
-    //     );
-
-    //     bytes32 messageId;
-
-    //     if (payInLink) {
-    //         LinkTokenInterface(i_link).transferFrom(
-    //             msg.sender,
-    //             address(this),
-    //             fee
-    //         );
-    //         messageId = IRouterClient(i_router).ccipSend(
-    //             token.chainSelector,
-    //             message
-    //         );
-    //     } else {
-    //         messageId = IRouterClient(i_router).ccipSend{value: fee}(
-    //             token.chainSelector,
-    //             message
-    //         );
-    //     }
-    // }
-        
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public pure override(CCIPReceiver, ERC721) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
 }
