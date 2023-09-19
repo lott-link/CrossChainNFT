@@ -9,8 +9,8 @@ let chainSelector = 0
 let linkTokenAddr = zero_address
 let wETHTokenAddr = zero_address
 let ccipAddr = zero_address
-let crossAddr = "0xc8cA43AbA32EbF04b3a650Af2762f229681BAc4a"
-let wcrossAddr = "0xc8cA43AbA32EbF04b3a650Af2762f229681BAc4a"
+let crossAddr = "0x8381BA26034E7559925F78881Bd82744f4a15d26"
+let wcrossAddr = "0x8381BA26034E7559925F78881Bd82744f4a15d26"
 
   if(network.config.chainId == 11155111) {
 

@@ -47,19 +47,19 @@ async function Main() {
   const fee = await cross.getFee(
     "0xa26FB83C3b27a62146756E88Ec9aDCe234F538B2",
     nftAddr,
-    59,
+    60,
     // wcrossAddr,
     false
   );
   console.log("transfer fee : ", ethers.formatEther(fee));
 
-  await nft.approve(crossAddr, 59);
+  await nft.approve(crossAddr, 60);
   console.log("NFT approved");
 
   await cross.requestTransferCrossChain(
     nftAddr,
     "0xa26FB83C3b27a62146756E88Ec9aDCe234F538B2",
-    59,
+    60,
     // wcrossAddr,
     { value: ethers.parseEther("0.0003") }
   );

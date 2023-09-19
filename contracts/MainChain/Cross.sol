@@ -118,6 +118,10 @@ contract Cross is ERC721Holder, CCIPReceiver {
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal virtual override {
+        require(
+            abi.decode(message.sender, (address)) == address(this),
+            "invalid message sender address"
+        );
         (
             address contAddr,
             address to,

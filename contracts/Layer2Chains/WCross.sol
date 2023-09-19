@@ -52,6 +52,10 @@ contract WCross is WNFT {
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal virtual override {
+        require(
+            abi.decode(message.sender, (address)) == address(this),
+            "invalid message sender address"
+        );
         (
             address to,
             address contAddr,

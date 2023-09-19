@@ -31,7 +31,7 @@ async function Main() {
     0,
     "0xa26FB83C3b27a62146756E88Ec9aDCe234F538B2",
     // crossAddr,
-    { value: ethers.parseEther("2.35") }
+    { value: ethers.parseEther("2.15") }
   );
   console.log("nft transfered");
 }
