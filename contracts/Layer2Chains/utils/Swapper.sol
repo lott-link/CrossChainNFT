@@ -66,35 +66,10 @@ contract Swapper {
     address internal constant wMATIC = 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270;
     address internal constant LINK_ERC20 = 0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39;
     address internal constant LINK_ERC677 = 0xb0897686c545045aFc77CF20eC7A532E3120E0F1;
-    address internal constant USDT = 0xc2132D05D31c914a87C6611C10748AEb04B58e8F;
     address internal constant LOTT = 0x773ADb3F75c4754aE1A56FfF3ad199056817bEAE;
 
     // For this example, we will set the pool fee to 0.3%.
     uint24 internal constant poolFee = 3000;
-
-    function USDT_MATIC() public view returns(uint256) {
-        IV3PairPool pool = IV3PairPool(factory.getPool(wMATIC, USDT, poolFee));
-        (uint160 sqrtPriceX96) = pool.slot0().sqrtPriceX96;
-        return pool.token0() == wMATIC ? sqrtPriceX96.getPrice1() : sqrtPriceX96.getPrice0();
-    }
-
-    function MATIC_USDT() public view returns(uint256) {
-        IV3PairPool pool = IV3PairPool(factory.getPool(wMATIC, USDT, poolFee));
-        (uint160 sqrtPriceX96) = pool.slot0().sqrtPriceX96;
-        return pool.token0() == wMATIC ? sqrtPriceX96.getPrice0() : sqrtPriceX96.getPrice1();
-    }
-
-    function USDT_LINK() public view returns(uint256) {
-        IV3PairPool pool = IV3PairPool(factory.getPool(LINK_ERC20, USDT, poolFee));
-        (uint160 sqrtPriceX96) = pool.slot0().sqrtPriceX96;
-        return pool.token0() == LINK_ERC20 ? sqrtPriceX96.getPrice1() : sqrtPriceX96.getPrice0();
-    }
-
-    function LINK_USDT() public view returns(uint256) {
-        IV3PairPool pool = IV3PairPool(factory.getPool(LINK_ERC20, USDT, poolFee));
-        (uint160 sqrtPriceX96) = pool.slot0().sqrtPriceX96;
-        return pool.token0() == LINK_ERC20 ? sqrtPriceX96.getPrice0() : sqrtPriceX96.getPrice1();
-    }
 
     function LOTT_LINK() public view returns(uint256) {
         IV3PairPool pool = IV3PairPool(factory.getPool(LINK_ERC20, LOTT, poolFee));
@@ -108,14 +83,6 @@ contract Swapper {
         return pool.token0() == LINK_ERC20 ? sqrtPriceX96.getPrice0() : sqrtPriceX96.getPrice1();
     }
 
-    function LOTT_USDT() public view returns(uint256) {
-        return LOTT_LINK() * LINK_USDT() / 10 ** 18;
-    }
-
-    function USDT_LOTT() public view returns(uint256) {
-        return USDT_LINK() * LINK_LOTT() / 10 ** 18;
-    }
-
 // MATIC - LOTT ---------------------------------------------------------------------
 
     function swap_MATIC_LOTT(
@@ -125,19 +92,16 @@ contract Swapper {
 
         TransferHelper.safeApprove(wMATIC, address(swapRouter), amountIn);
 
-        ISwapRouter.ExactInputSingleParams memory params =
-            ISwapRouter.ExactInputSingleParams({
-                tokenIn: wMATIC,
-                tokenOut: LOTT,
-                fee: poolFee,
+        ISwapRouter.ExactInputParams memory params =
+            ISwapRouter.ExactInputParams({
+                path: abi.encodePacked(wMATIC, poolFee, LINK_ERC20, poolFee, LOTT),
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: amountIn,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
+                amountOutMinimum: 0
             });
 
-        amountOut = swapRouter.exactInputSingle(params);
+        amountOut = swapRouter.exactInput(params);
     }
 
 
@@ -150,23 +114,22 @@ contract Swapper {
 
         TransferHelper.safeApprove(LINK_ERC20, address(swapRouter), amountIn);
 
-        ISwapRouter.ExactInputSingleParams memory params =
-            ISwapRouter.ExactInputSingleParams({
-                tokenIn: LINK_ERC20,
-                tokenOut: LOTT,
-                fee: poolFee,
+        ISwapRouter.ExactInputParams memory params =
+            ISwapRouter.ExactInputParams({
+                path: abi.encodePacked(LINK_ERC20, poolFee, LOTT),
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: amountIn,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
+                amountOutMinimum: 0
             });
 
-        amountOut = swapRouter.exactInputSingle(params);
+        amountOut = swapRouter.exactInput(params);
     }
 
     function swap_LINK677_20(uint256 amount) internal {
+        TransferHelper.safeApprove(LINK_ERC677, address(pegSwap), amount);
         pegSwap.swap(amount, LINK_ERC677, LINK_ERC20);
     }
+    
     receive() external payable{}
 }
