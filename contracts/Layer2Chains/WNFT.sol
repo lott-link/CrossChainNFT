@@ -81,22 +81,10 @@ abstract contract WNFT is ERC721Burnable, CCIPReceiver {
 
 
     function xBack(
-        address contAddr,
-        address userAddr,
-        uint256 tokenId
+        Client.EVM2AnyMessage memory message,
+        uint256 fee,
+        bool payInLink
     ) internal {
-        bool payInLink = msg.value == 0;
-
-        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-            receiver: abi.encode(address(this)),
-            data: abi.encode(contAddr, userAddr, tokenId),
-            tokenAmounts: new Client.EVMTokenAmount[](0),
-            extraArgs: "",
-            feeToken: payInLink ? i_link : address(0)
-        });
-
-        uint256 fee = IRouterClient(i_router).getFee(targetSelector, message);
-
         bytes32 messageId;
 
         if (payInLink) {
