@@ -8,8 +8,19 @@ import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 
-
-contract Cross is ERC721Holder, CCIPReceiver {
+/**
+ * NFT Cross-Chain Bridge to Polygon Powered By CCIP V1
+ * is one of the safest ways to bridge NFT From Ethereum to Polygon.
+ * For using this Bridge :
+ * a. Approve your NFT to the address of this contract.
+ * b. Approve your Link token to this contract or Check the Xcall fee and add Eth value to C.
+ * c. Call the “requestTransferCrossChain” Function and add data.
+ *   -Your NFT will Lock in this contract.
+ *   -around 30 min your NFT will mint on the same contract address on Polygon to the to address.
+ *   -you can find the CCIP transaction ID on Logs.
+ *   -you Polygon NFT owned this NFT and it is transferable.
+ */
+contract Polygon_NFT_Bridge is ERC721Holder, CCIPReceiver {
     address immutable i_link;
     uint64 currentSelector;
     uint64 targetSelector;
@@ -41,7 +52,8 @@ contract Cross is ERC721Holder, CCIPReceiver {
                 contAddr,
                 tokenId,
                 NFT.name(),
-                NFT.symbol()
+                NFT.symbol(),
+                NFT.tokenURI(tokenId)
             ),
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -55,7 +67,8 @@ contract Cross is ERC721Holder, CCIPReceiver {
     function requestTransferCrossChain(
         address contAddr,
         address to,
-        uint256 tokenId
+        uint256 tokenId,
+        address dappAddr
     ) public payable {
         bool payInLink = msg.value == 0;
         address from = msg.sender;
@@ -87,7 +100,7 @@ contract Cross is ERC721Holder, CCIPReceiver {
 
         if (payInLink) {
             LinkTokenInterface(i_link).transferFrom(
-                msg.sender,
+                from,
                 address(this),
                 fee
             );
@@ -101,7 +114,7 @@ contract Cross is ERC721Holder, CCIPReceiver {
                 message
             );
             if (msg.value > fee) {
-                payable(msg.sender).transfer(msg.value - fee);
+                payable(dappAddr).transfer(msg.value - fee);
             }
         }
     }
@@ -119,8 +132,9 @@ contract Cross is ERC721Holder, CCIPReceiver {
         Client.Any2EVMMessage memory message
     ) internal virtual override {
         require(
-            abi.decode(message.sender, (address)) == address(this),
-            "invalid message sender address"
+            abi.decode(message.sender, (address)) == address(this) &&
+            message.sourceChainSelector == targetSelector,
+            "invalid message sender"
         );
         (
             address contAddr,
