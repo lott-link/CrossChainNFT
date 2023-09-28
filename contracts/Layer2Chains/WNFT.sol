@@ -36,6 +36,21 @@ abstract contract WNFT is ERC721Burnable, CCIPReceiver {
         return (wrappedTokens[tokenId].uri);
     }
 
+    function tokenInfo(uint256 wTokenId) public view returns(
+        address contAddr,
+        uint256 tokenId,
+        string memory name,
+        string memory symbol,
+        string memory uri
+    ) {
+        WrappedToken memory wToken = wrappedTokens[wTokenId];
+        contAddr = wToken.contAddr;
+        tokenId = wToken.tokenId;
+        name = wToken.name;
+        symbol = wToken.symbol;
+        uri = wToken.uri;
+    }
+
     function wMint(
         address userAddr,
         address contAddr,
@@ -43,8 +58,8 @@ abstract contract WNFT is ERC721Burnable, CCIPReceiver {
         string memory _name,
         string memory _symbol,
         string memory _uri
-    ) public {
-        uint256 wTokenId = counter++;
+    ) internal {
+        uint256 wTokenId = ++counter;
         wrappedTokens[wTokenId] = WrappedToken(
             contAddr,
             tokenId,
@@ -77,35 +92,6 @@ abstract contract WNFT is ERC721Burnable, CCIPReceiver {
 
         // Get the fee required to send the message
         fee = IRouterClient(i_router).getFee(targetSelector, message);
-    }
-
-
-    function xBack(
-        Client.EVM2AnyMessage memory message,
-        uint256 fee,
-        bool payInLink
-    ) internal {
-        bytes32 messageId;
-
-        if (payInLink) {
-            LinkTokenInterface(i_link).transferFrom(
-                msg.sender,
-                address(this),
-                fee
-            );
-            messageId = IRouterClient(i_router).ccipSend(
-                targetSelector,
-                message
-            );
-        } else {
-            messageId = IRouterClient(i_router).ccipSend{value: fee}(
-                targetSelector,
-                message
-            );
-            if (msg.value > fee) {
-                payable(msg.sender).transfer(msg.value - fee);
-            }
-        }
     }
 
     function supportsInterface(

@@ -43,7 +43,6 @@ contract Ethereum_Cross_NFT is Swapper, Burner, WNFT {
             "ERC721Burnable: caller is not owner nor approved"
         );
         _burn(wTokenId);
-        delete wrappedTokens[wTokenId];
         bool payInLink = msg.value == 0;
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
@@ -81,8 +80,9 @@ contract Ethereum_Cross_NFT is Swapper, Burner, WNFT {
         Client.Any2EVMMessage memory message
     ) internal virtual override {
         require(
-            abi.decode(message.sender, (address)) == address(this),
-            "invalid message sender address"
+            abi.decode(message.sender, (address)) == address(this) &&
+            message.sourceChainSelector == targetSelector,
+            "invalid message sender"
         );
         (
             address to,
@@ -95,24 +95,4 @@ contract Ethereum_Cross_NFT is Swapper, Burner, WNFT {
         wMint(to, contAddr, tokenId, name, symbol, tokenURI);
     }
 
-// internal payment functions --------------------------------------------------------------------------
-
-
-    function _payLINK(address addr, uint256 amount) internal {
-        LinkTokenInterface(i_link).transfer(addr, amount);
-    }
-
-    function _payMATIC(address addr, uint256 amount) internal {
-        payable(addr).transfer(amount);
-    }
-
-    function load_LINK_LOTT(uint256 amountLINK) internal {
-        uint256 amountLOTT = swap_LINK677_LOTT(amountLINK);
-        burnERC20(LOTT, amountLOTT);
-    }
-
-    function load_MATIC_LOTT(uint256 amountMATIC) internal {
-        uint256 amountLOTT = swap_MATIC_LOTT(amountMATIC);
-        burnERC20(LOTT, amountLOTT);
-    }
 }
