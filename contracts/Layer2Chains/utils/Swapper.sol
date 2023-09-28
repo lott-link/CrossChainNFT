@@ -19,46 +19,8 @@ interface IpegSwap {
     function swap(uint256 amount, address source, address target) external;
 }
 
-interface IV3PairPool {
-    struct Slot0 {
-        // the current price
-        uint160 sqrtPriceX96;
-        // the current tick
-        int24 tick;
-        // the most-recently updated index of the observations array
-        uint16 observationIndex;
-        // the current maximum number of observations that are being stored
-        uint16 observationCardinality;
-        // the next maximum number of observations to store, triggered in observations.write
-        uint16 observationCardinalityNext;
-        // the current protocol fee for token0 and token1,
-        // 2 uint32 values store in a uint32 variable (fee/PROTOCOL_FEE_DENOMINATOR)
-        uint32 feeProtocol;
-        // whether the pool is locked
-        bool unlocked;
-    }
-    function slot0() external view returns(Slot0 memory);
-    function token0() external view returns(address);
-    function token1() external view returns(address);
-}
-
-library pricer {
-    
-    function getPrice0(uint256 sqrtPriceX96) internal pure returns(uint256) {
-        uint256 denom = ((2 ** 96) ** 2);
-        denom /= 10 ** 18;
-        return (sqrtPriceX96 ** 2) / denom;
-    }
-
-    function getPrice1(uint256 sqrtPriceX96) internal pure returns(uint256) {
-        uint256 denom = (sqrtPriceX96 ** 2) / 10 ** 18;
-        return ((2 ** 96) ** 2) / denom;
-    }
-}
-
 // on polygon matic mainnet
 contract Swapper {
-    using pricer for uint160;
 
     ISwapRouter internal constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     IV3Factory internal constant factory = IV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
@@ -70,18 +32,6 @@ contract Swapper {
 
     // For this example, we will set the pool fee to 0.3%.
     uint24 internal constant poolFee = 3000;
-
-    function LOTT_LINK() public view returns(uint256) {
-        IV3PairPool pool = IV3PairPool(factory.getPool(LINK_ERC20, LOTT, poolFee));
-        (uint160 sqrtPriceX96) = pool.slot0().sqrtPriceX96;
-        return pool.token0() == LINK_ERC20 ? sqrtPriceX96.getPrice1() : sqrtPriceX96.getPrice0();
-    }
-
-    function LINK_LOTT() public view returns(uint256) {
-        IV3PairPool pool = IV3PairPool(factory.getPool(LINK_ERC20, LOTT, poolFee));
-        (uint160 sqrtPriceX96) = pool.slot0().sqrtPriceX96;
-        return pool.token0() == LINK_ERC20 ? sqrtPriceX96.getPrice0() : sqrtPriceX96.getPrice1();
-    }
 
 // MATIC - LOTT ---------------------------------------------------------------------
 

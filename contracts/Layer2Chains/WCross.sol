@@ -7,7 +7,7 @@ import "./utils/Burner.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract WCross is Ownable, Swapper, Burner, WNFT, ReentrancyGuard {
+contract Etherume_Cross_NFT is Ownable, Swapper, Burner, WNFT, ReentrancyGuard {
 
     event CcipReceive(bytes data);
 
