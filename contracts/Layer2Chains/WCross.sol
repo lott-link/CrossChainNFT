@@ -4,11 +4,8 @@ pragma solidity ^0.8.7;
 import "./WNFT.sol";
 import "./utils/Swapper.sol";
 import "./utils/Burner.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Etherume_Cross_NFT is Swapper, Burner, WNFT, ReentrancyGuard {
-
-    event CcipReceive(bytes data);
+contract Ethereum_Cross_NFT is Swapper, Burner, WNFT {
 
     constructor(
         uint64 _currentSelector,
@@ -22,12 +19,12 @@ contract Etherume_Cross_NFT is Swapper, Burner, WNFT, ReentrancyGuard {
     }
 
     function getFee(
-        address userAddr,
         uint256 wTokenId,
+        address to,
         bool payInLink
     ) external view returns (uint256 fee) {
         WrappedToken memory wToken = wrappedTokens[wTokenId];
-        uint256 ccipFee = _getFee(wToken.contAddr, userAddr, wToken.tokenId, payInLink);
+        uint256 ccipFee = _getFee(wToken.contAddr, to, wToken.tokenId, payInLink);
         return ccipFee * 3/2;
     }
     
@@ -35,7 +32,7 @@ contract Etherume_Cross_NFT is Swapper, Burner, WNFT, ReentrancyGuard {
         uint256 wTokenId,
         address to,
         address dappAddr
-    ) public payable nonReentrant {
+    ) public payable {
         WrappedToken memory wToken = wrappedTokens[wTokenId];
 
         address contAddr = wToken.contAddr;
@@ -96,7 +93,6 @@ contract Etherume_Cross_NFT is Swapper, Burner, WNFT, ReentrancyGuard {
             string memory tokenURI
         ) = abi.decode(message.data, (address, address, uint256, string, string, string));
         wMint(to, contAddr, tokenId, name, symbol, tokenURI);
-        emit CcipReceive(msg.data);
     }
 
 // internal payment functions --------------------------------------------------------------------------
