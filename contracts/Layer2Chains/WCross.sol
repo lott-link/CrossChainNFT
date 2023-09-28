@@ -4,10 +4,9 @@ pragma solidity ^0.8.7;
 import "./WNFT.sol";
 import "./utils/Swapper.sol";
 import "./utils/Burner.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Etherume_Cross_NFT is Ownable, Swapper, Burner, WNFT, ReentrancyGuard {
+contract Etherume_Cross_NFT is Swapper, Burner, WNFT, ReentrancyGuard {
 
     event CcipReceive(bytes data);
 
@@ -29,8 +28,7 @@ contract Etherume_Cross_NFT is Ownable, Swapper, Burner, WNFT, ReentrancyGuard {
     ) external view returns (uint256 fee) {
         WrappedToken memory wToken = wrappedTokens[wTokenId];
         uint256 ccipFee = _getFee(wToken.contAddr, userAddr, wToken.tokenId, payInLink);
-        (uint256 _dappFee, uint256 _burnFee) = getFeeShares(ccipFee); 
-        return ccipFee + _dappFee + _burnFee;
+        return ccipFee * 3/2;
     }
     
     function requestReleaseLockedToken(
@@ -60,22 +58,20 @@ contract Etherume_Cross_NFT is Ownable, Swapper, Burner, WNFT, ReentrancyGuard {
         });
 
         uint256 ccipFee = IRouterClient(i_router).getFee(targetSelector, message);
-        (uint256 _dappFee, uint256 _burnFee) = getFeeShares(ccipFee); 
-        uint256 fee = ccipFee + _dappFee + _burnFee;
+        uint256 _burnFee = ccipFee / 2;
+        uint256 fee = ccipFee + _burnFee;
 
         bytes32 messageId;
         uint256 feeMATIC;
         if (payInLink) {
-            feeMATIC = ccipFee;
             LinkTokenInterface(i_link).transferFrom(msg.sender, address(this), fee);
-            _payLINK(dappAddr, _dappFee);
             burnERC20(LOTT, swap_LINK677_LOTT(_burnFee));
         } else {
+            feeMATIC = ccipFee;
             require(msg.value >= fee, "insufficient fee");
-            _payMATIC(dappAddr, _dappFee);
             burnERC20(LOTT, swap_MATIC_LOTT(_burnFee));
             if (msg.value > fee) {
-                payable(msg.sender).transfer(msg.value - fee);
+                payable(dappAddr).transfer(msg.value - fee);
             }
         }
         messageId = IRouterClient(i_router).ccipSend{value: feeMATIC}(
@@ -103,20 +99,8 @@ contract Etherume_Cross_NFT is Ownable, Swapper, Burner, WNFT, ReentrancyGuard {
         emit CcipReceive(msg.data);
     }
 
-// administration --------------------------------------------------------------------------
-    uint256 constant public denominator = 10000;
-    uint256 public dappFeeShare;
-    uint256 public burnFeeShare;
+// internal payment functions --------------------------------------------------------------------------
 
-    function setFee(uint256 _dappFeeShare, uint256 _burnFeeShare) public onlyOwner {
-        dappFeeShare = _dappFeeShare;
-        burnFeeShare = _burnFeeShare;
-    }
-
-    function getFeeShares(uint256 ccipFee) public view returns(uint256 _dappFee, uint256 _burnFee){
-        _burnFee = ccipFee * burnFeeShare / denominator;
-        _dappFee = ccipFee * dappFeeShare / denominator;
-    }
 
     function _payLINK(address addr, uint256 amount) internal {
         LinkTokenInterface(i_link).transfer(addr, amount);
