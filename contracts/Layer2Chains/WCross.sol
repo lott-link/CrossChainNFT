@@ -19,16 +19,18 @@ import "./utils/Burner.sol";
  * ======================================================================
  *  ================ Open source smart contract on EVM =================
  *   ====================== Using Chainlink CCIP ======================
- * @title Ethereum Cross-Chain NFT Bridge
- * @dev Safely bridge your Ethereum NFTs to Polygon using CCIP V1.
- * To bridge your NFT:
- * a. Approve this contract's address for your NFT.
- * b. Approve Link tokens for the transfer or provide ETH or MATIC for the fee.
- * c. Call `requestReleaseLockedToken` with the required details to initiate the transfer.
- *    - Your NFT will be temporarily locked within this contract.
- *    - In approximately 30 minutes, your NFT will be minted on the Polygon network at the specified address.
- *    - The CCIP transaction ID can be found in the contract logs.
- *    - Your Polygon NFT will have ownership of the original NFT and will be transferable.
+ * @title NFT Cross-Chain Bridge Powered by CCIP V1, Connecting to Ethereum
+ * @dev Each NFT within this contract is linked to an equivalent NFT on the Ethereum network.
+ * To access information about the associated NFT, please refer to the "tokenInfo" section.
+ * The locked NFT can be found at the same address of this contract on the Ethereum network.
+ * To release your NFT, follow these steps:
+ * a. Grant approval for the Link token to this contract, enabling automatic payment of the cross-chain cost.
+ *    OR
+ *    Utilize the "getFee" function with the boolean value set to false to obtain the cross-chain cost in Matic.
+ * b. Call the "requestReleaseLockedToken" function, including the required release fee.
+ * The CCIP transaction ID can be found in the contract logs.
+ * After a brief processing period,
+ * you can enjoy your Ethereum NFT at your specified destination address.
  */
 contract Ethereum_Cross_NFT is Swapper, Burner, ERC721Burnable, CCIPReceiver {
     address immutable i_link;
