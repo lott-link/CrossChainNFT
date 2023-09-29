@@ -16,7 +16,7 @@ let {
 
 async function Main() {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
-  await deployFee("Cross", chainSelector, desChainSelector, routerAddr, linkTokenAddr)
+  // await deployFee("Cross", chainSelector, desChainSelector, routerAddr, linkTokenAddr)
 
   // // deploy NFT ------------------------------------------------------------------------
   //     const NFT = await ethers.getContractFactory("NFT");
@@ -26,13 +26,13 @@ async function Main() {
   //     await delay(10000)
   //     await verify(nft.target, [])
 
-  // // deploy Cross ------------------------------------------------------------------------
-  //     const Cross = await ethers.getContractFactory("Cross");
-  //     const cross = await Cross.deploy(chainSelector, desChainSelector, routerAddr, linkTokenAddr);
-  //     await cross.waitForDeployment();
-  //     console.log("Cross : ", cross.target);
-  //     await delay(20000)
-  //     await verify(cross.target, [chainSelector, desChainSelector, routerAddr, linkTokenAddr])
+  // deploy Cross ------------------------------------------------------------------------
+      const Cross = await ethers.getContractFactory("Polygon_NFT_Bridge");
+      const cross = await Cross.deploy(chainSelector, desChainSelector, routerAddr, linkTokenAddr);
+      await cross.waitForDeployment();
+      console.log("Cross : ", cross.target);
+      await delay(20000)
+      await verify(cross.target, [chainSelector, desChainSelector, routerAddr, linkTokenAddr])
 
   // // mintNFT ------------------------------------------------------------------------
   //     const nft = await ethers.getContractAt("NFT", nftAddr);

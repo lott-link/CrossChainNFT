@@ -15,12 +15,19 @@ module.exports = {
    }
   },
   networks: {
+    ethereum: {
+      url: `https://eth.llamarpc.com`,
+      // url: `https://rpc.ankr.com/eth`,
+      accounts: [`0x${PRIVATE_KEY}`],
+      // gasPrice: 6 * 10 ** 9,
+      chainId: 1
+    },
     polygon: {
       url: `https://polygon-rpc.com/`,
       // url: `https://rpc-mainnet.maticvigil.com`,
       // url: `https://rpc.ankr.com/polygon/`,
       accounts: [`0x${PRIVATE_KEY}`],
-      // gasPrice: 500 * 10 ** 9,
+      gasPrice: 90 * 10 ** 9,
       chainId: 137
     },
     polygonMumbai: {
@@ -45,6 +52,7 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
+      ethereum: `${ETHERSCAN_API_KEY}`,
       sepolia: `${ETHERSCAN_API_KEY}`,
       polygon: `${POLYGONSCAN_API_KEY}`,
       polygonMumbai: `${POLYGONSCAN_API_KEY}`,

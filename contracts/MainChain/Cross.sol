@@ -9,16 +9,26 @@ import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/interfaces/LinkT
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 
 /**
- * @title NFT Cross-Chain Bridge to Polygon Powered By CCIP V1
- * @dev This smart contract provides a secure bridge for transferring NFTs from Ethereum to Polygon.
- * To use this bridge:
- * a. Approve your NFT to the address of this contract.
- * b. Approve your Link token to this contract or provide ETH for the transfer fee.
- * c. Call the `requestTransferCrossChain` function with the required data to initiate the transfer process.
- *    - Your NFT will be locked in this contract.
- *    - After approximately 30 minutes, your NFT will be minted on the Polygon network at the specified address.
- *    - You can find the CCIP transaction ID in the contract logs.
- *    - Your Polygon NFT will own the original NFT and will be transferable.
+ * ======================================================================
+ *   ██       ██████  ████████ ████████    ██      ██ ███    ██ ██   ██
+ *   ██      ██    ██    ██       ██       ██      ██ ████   ██ ██  ██
+ *   ██      ██    ██    ██       ██       ██      ██ ██ ██  ██ █████
+ *   ██      ██    ██    ██       ██       ██      ██ ██  ██ ██ ██  ██
+ *   ███████  ██████     ██       ██    ██ ███████ ██ ██   ████ ██   ██    
+ * ======================================================================
+ *  ================ Open source smart contract on EVM =================
+ *   ====================== Using Chainlink CCIP ======================
+ * @title NFT Cross-Chain Bridge Powered by CCIP V1, Connecting to Ethereum
+ * @dev Each NFT within this contract is linked to an equivalent NFT on the Ethereum network.
+ * To access information about the associated NFT, please refer to the "tokenInfo" section.
+ * The locked NFT can be found at the same address as this contract on the Ethereum network.
+ * To release your NFT, follow these steps:
+ * a. Grant approval for the Link token to this contract, enabling automatic payment of the cross-chain cost.
+ *    OR
+ *    Utilize the "getFee" function with the boolean value set to false to obtain the cross-chain cost in Matic.
+ * b. Call the "requestReleaseLockedToken" function, including the required release fee.
+ * After a brief processing period,
+ * you can enjoy your Ethereum NFT at your specified destination address.
  */
 contract Polygon_NFT_Bridge is ERC721Holder, CCIPReceiver {
     address immutable i_link;

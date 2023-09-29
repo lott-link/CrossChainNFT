@@ -7,10 +7,10 @@ let { routerAddr, chainSelector, desChainSelector, linkTokenAddr, wETHTokenAddr,
 
 async function Main() {
     const delay = ms => new Promise(res => setTimeout(res, ms));
-    await deployFee("WCross", chainSelector, desChainSelector, routerAddr, linkTokenAddr)
-    await deployFee("ChanceRoom_Sang", factoryAddr)
+    // await deployFee("WCross", chainSelector, desChainSelector, routerAddr, linkTokenAddr)
+    // await deployFee("ChanceRoom_Sang", factoryAddr)
 
-    // Main WCross
+    // // Main WCross
     // const WCross = await ethers.getContractFactory("WCross");
     // const wcross = await WCross.deploy(chainSelector, desChainSelector, routerAddr, linkTokenAddr);
     // await wcross.waitForDeployment();
