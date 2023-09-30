@@ -1,11 +1,11 @@
 require("@nomicfoundation/hardhat-toolbox");
 
-const { PRIVATE_KEY, ETHERSCAN_API_KEY, POLYGONSCAN_API_KEY } = require('./secret.json');
+const { CCC_PRIVATE_KEY, PRIVATE_KEY, ETHERSCAN_API_KEY, POLYGONSCAN_API_KEY } = require('./secret.json');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-  version: "0.8.19",
+  version: "0.8.21",
   settings: {
     // "viaIR": true,
     optimizer: {
@@ -15,19 +15,19 @@ module.exports = {
    }
   },
   networks: {
-    ethereum: {
+    mainnet: {
       url: `https://eth.llamarpc.com`,
       // url: `https://rpc.ankr.com/eth`,
-      accounts: [`0x${PRIVATE_KEY}`],
-      // gasPrice: 6 * 10 ** 9,
+      accounts: [`0x${CCC_PRIVATE_KEY}`],
+      gasPrice: 9 * 10 ** 9,
       chainId: 1
     },
     polygon: {
       url: `https://polygon-rpc.com/`,
       // url: `https://rpc-mainnet.maticvigil.com`,
       // url: `https://rpc.ankr.com/polygon/`,
-      accounts: [`0x${PRIVATE_KEY}`],
-      gasPrice: 90 * 10 ** 9,
+      accounts: [`0x${CCC_PRIVATE_KEY}`],
+      gasPrice: 85 * 10 ** 9,
       chainId: 137
     },
     polygonMumbai: {
@@ -52,7 +52,7 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      ethereum: `${ETHERSCAN_API_KEY}`,
+      mainnet: `${ETHERSCAN_API_KEY}`,
       sepolia: `${ETHERSCAN_API_KEY}`,
       polygon: `${POLYGONSCAN_API_KEY}`,
       polygonMumbai: `${POLYGONSCAN_API_KEY}`,

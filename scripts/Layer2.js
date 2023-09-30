@@ -10,14 +10,14 @@ async function Main() {
     // await deployFee("WCross", chainSelector, desChainSelector, routerAddr, linkTokenAddr)
     // await deployFee("ChanceRoom_Sang", factoryAddr)
 
-    // // Main WCross
-    // const WCross = await ethers.getContractFactory("WCross");
-    // const wcross = await WCross.deploy(chainSelector, desChainSelector, routerAddr, linkTokenAddr);
-    // await wcross.waitForDeployment();
-    // console.log("WCross : ", wcross.target);
+    // Main WCross
+    const WCross = await ethers.getContractFactory("Ethereum_Cross_NFT");
+    const wcross = await WCross.deploy(chainSelector, desChainSelector, routerAddr, linkTokenAddr);
+    await wcross.waitForDeployment();
+    console.log("WCross : ", wcross.target);
 
-    // await delay(10000)
-    // await verify(wcross.target, [chainSelector, desChainSelector, routerAddr, linkTokenAddr])
+    await delay(10000)
+    await verify(wcross.target, [chainSelector, desChainSelector, routerAddr, linkTokenAddr])
 
 
 // // xBack the LockedNFT ------------------------------------------------------------------------------   
